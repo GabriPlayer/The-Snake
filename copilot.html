@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Cobrinha com Tela de Recomeçar</title>
+  <style>
+    body {
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      background:#eee;
+      margin:0;
+    }
+    canvas {
+      background:#fff;
+      border:2px solid #000;
+    }
+    #overlay {
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      height:100%;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:rgba(0,0,0,0.5);
+      color:white;
+      font-family:Arial, sans-serif;
+      font-size:24px;
+      flex-direction:column;
+      visibility:hidden;
+    }
+    #overlay button {
+      margin-top:20px;
+      padding:10px 20px;
+      font-size:18px;
+      cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="400" height="400"></canvas>
+  <div id="overlay">
+    <div id="gameOverText">Game Over!</div>
+    <div id="scoreText"></div>
+    <button onclick="initGame()">Recomeçar</button>
+  </div>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const scoreText = document.getElementById("scoreText");
+
+    const box = 20;
+    let snake, direction, food, score, game;
+
+    function initGame() {
+      snake = [{x:200, y:200}];
+      direction = "RIGHT";
+      food = {x:100, y:100};
+      score = 0;
+      overlay.style.visibility = "hidden";
+      if (game) clearInterval(game);
+      game = setInterval(draw, 150);
+    }
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowUp" && direction !== "DOWN") direction = "UP";
+      if (e.key === "ArrowDown" && direction !== "UP") direction = "DOWN";
+      if (e.key === "ArrowLeft" && direction !== "RIGHT") direction = "LEFT";
+      if (e.key === "ArrowRight" && direction !== "LEFT") direction = "RIGHT";
+    });
+
+    function drawGrid() {
+      ctx.strokeStyle = "#ddd";
+      for (let x=0; x<=canvas.width; x+=box) {
+        ctx.beginPath();
+        ctx.moveTo(x,0);
+        ctx.lineTo(x,canvas.height);
+        ctx.stroke();
+      }
+      for (let y=0; y<=canvas.height; y+=box) {
+        ctx.beginPath();
+        ctx.moveTo(0,y);
+        ctx.lineTo(canvas.width,y);
+        ctx.stroke();
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      drawGrid();
+
+      // cobra
+      snake.forEach((part,i)=>{
+        ctx.fillStyle = i===0 ? "green" : "lightgreen";
+        ctx.fillRect(part.x, part.y, box, box);
+        ctx.strokeRect(part.x, part.y, box, box);
+      });
+
+      // comida
+      ctx.fillStyle = "red";
+      ctx.fillRect(food.x, food.y, box, box);
+
+      // nova cabeça
+      let headX = snake[0].x;
+      let headY = snake[0].y;
+      if (direction==="UP") headY -= box;
+      if (direction==="DOWN") headY += box;
+      if (direction==="LEFT") headX -= box;
+      if (direction==="RIGHT") headX += box;
+
+      // comer comida
+      if (headX===food.x && headY===food.y) {
+        score++;
+        food = {
+          x: Math.floor(Math.random()*(canvas.width/box))*box,
+          y: Math.floor(Math.random()*(canvas.height/box))*box
+        };
+      } else {
+        snake.pop();
+      }
+
+      const newHead = {x:headX,y:headY};
+
+      // colisões
+      if (
+        headX < 0 || headX >= canvas.width ||
+        headY < 0 || headY >= canvas.height ||
+        snake.some(block => block.x === newHead.x && block.y === newHead.y)
+      ) {
+        clearInterval(game);
+        scoreText.textContent = "Pontuação: " + score;
+        overlay.style.visibility = "visible";
+        return;
+      }
+
+      snake.unshift(newHead);
+
+      // pontuação
+      ctx.fillStyle = "black";
+      ctx.font = "20px Arial";
+      ctx.fillText("Score: " + score, 10, 20);
+    }
+
+    // iniciar
+    initGame();
+  </script>
+</body>
+</html>
